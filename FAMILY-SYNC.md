@@ -49,8 +49,10 @@ shell is still displayed, and confirm v2.0 / FAMILY.
 8. Delete one local family track, then download it again. Deleting it locally
    never deletes the Dropbox original. Removed Dropbox files stay on the device.
 
-The family key is held only in memory and is cleared by Disconnect or a page reload.
-The user must reconnect for future refreshes, but offline playback needs no key.
+The family key is remembered in localStorage after a successful connection on this device.
+The app reconnects when reopened online. Disconnect removes the saved key without deleting
+audio. A rejected/revoked key is forgotten and must be entered again. Clearing website
+data also removes it. Offline playback still needs no key. Only use this on trusted devices.
 Maximum individual download: 100 MB. Free device storage if a save fails. The app
 requests persistent storage where supported, but iOS can still remove site data.
 Keep original backups. Background/lock-screen playback and background downloads

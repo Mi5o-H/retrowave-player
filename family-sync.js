@@ -11,11 +11,13 @@
     el('family-cancel').hidden=!value;
     draw();
   }
+  function forgetKey(){try{localStorage.removeItem('retrowave-family-key')}catch{}}
+  function rememberKey(){try{localStorage.setItem('retrowave-family-key',familyKey)}catch{}}
   async function api(path, options={}){
     const response=await fetch(endpoint+path,{...options,credentials:'omit',cache:'no-store',redirect:'error',
       signal:controller?.signal,headers:{Authorization:'Bearer '+familyKey,...options.headers}});
     if(!response.ok){
-      if(response.status===401)throw new Error('Family key not accepted. Re-enter your family key.');
+      if(response.status===401){forgetKey();familyKey='';throw new Error('Family key not accepted. Re-enter your family key.');}
       if(response.status===503)throw new Error('Family sync needs setup on the Worker. Local playback is available.');
       throw new Error('Dropbox request failed. Refresh Library and retry; local music is safe.');
     }
@@ -25,7 +27,7 @@
     const data=await (await api('/api/library')).json();
     if(!Array.isArray(data.files)||data.files.some(t=>typeof t.id!=='string'||typeof t.rev!=='string'||typeof t.name!=='string'||typeof t.ticket!=='string'||!Number.isSafeInteger(t.size)))
       throw new Error('Library response was not valid.');
-    remote=data.files;
+    remote=data.files;rememberKey();
   }
   function localFor(track){return tracks.find(t=>t.cloudId===track.id);}
   function draw(){
@@ -100,8 +102,9 @@
   el('family-refresh').onclick=()=>run(async()=>{await listing();say(remote.length+' family tracks found.');if(el('family-auto').checked)await downloadAll();});
   el('family-all').onclick=()=>run(async()=>{await listing();await downloadAll();});
   el('family-cancel').onclick=()=>controller?.abort();
-  el('family-forget').onclick=()=>{familyKey='';remote=[];el('family-key').value='';draw();say('Disconnected. Downloaded music stays on this device.');};
+  el('family-forget').onclick=()=>{forgetKey();familyKey='';remote=[];el('family-key').value='';draw();say('Disconnected. Downloaded music stays on this device.');};
   el('family-auto').onchange=()=>{if(el('family-auto').checked)say('New and updated tracks download when you connect or refresh. Keep the app open.');};
   document.addEventListener('retrowave-library-changed',draw);
   navigator.storage?.persist?.().catch(()=>{});
+  try{const saved=localStorage.getItem('retrowave-family-key');if(saved&&saved.length>=32){familyKey=saved;say('Family key remembered on this device. Refresh Library when online.');if(navigator.onLine!==false)run(async()=>{await listing();say(remote.length+' family tracks found. Family key remembered on this device.');});}}catch{}
 })();
