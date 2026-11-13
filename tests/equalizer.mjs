@@ -1,6 +1,7 @@
 import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
 const html=fs.readFileSync('index.html','utf8');
-assert.match(html,/\.eq-panel\{display:block;/);
+// Presentation was replaced; test the functional control instead of old CSS.
+assert.match(html,/id="eq-bands"/);
 const ids=new Map();const get=id=>{if(!ids.has(id))ids.set(id,{value:'flat',checked:true,replaceChildren(){},append(){},setAttribute(){}});return ids.get(id)};
 const storage=new Map();const context={navigator:{userAgent:'Desktop',platform:'Win32',maxTouchPoints:0},$:get,document:{addEventListener(){},querySelectorAll:()=>[],createElement:()=>({append(){},setAttribute(){}})},localStorage:{setItem:(k,v)=>storage.set(k,v),getItem:k=>storage.get(k)}};vm.createContext(context);
 const block=html.slice(html.indexOf('const eqFreq='),html.indexOf('function initEq(){'));
