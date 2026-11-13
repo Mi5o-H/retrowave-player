@@ -78,3 +78,5 @@ but use a fresh service-worker cache name so existing devices receive the rollba
 Keep the same IndexedDB database; downloaded tracks remain normal playable blobs.
 Restore the prior Cloudflare deployment separately if necessary. Do not delete
 secrets or device storage during a rollback.
+
+Favorites: tap the heart beside any saved track. Favorites appear first and persist on this device, including after a cloud revision update. Unfavorite to return to normal order. Run node tests/favorites.mjs for the four favorite checks.
