@@ -1,0 +1,10 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+const html=fs.readFileSync('index.html','utf8'),events={},nodes=new Map([['cassette-state',{textContent:''}],['cassette-time',{textContent:''}]]),classes=new Set();
+const context={$:id=>nodes.get(id),current:0,fmt:n=>Number.isFinite(n)?String(Math.floor(n/60)).padStart(2,'0')+':'+String(Math.floor(n%60)).padStart(2,'0'):'00:00',audio:{currentTime:12,duration:180,paused:false,ended:false,addEventListener:(name,fn)=>events[name]=fn},document:{body:{classList:{toggle:(name,on)=>on?classes.add(name):classes.delete(name),contains:name=>classes.has(name)}}}};
+vm.createContext(context);const start=html.indexOf('function syncCassette(){'),end=html.indexOf('audio.onplay=',start);vm.runInContext(html.slice(start,end),context);
+events.playing();assert.ok(classes.has('cassette-playing'));assert.equal(nodes.get('cassette-state').textContent,'▶ PLAYING');assert.equal(nodes.get('cassette-time').textContent,'00:12 / 03:00');console.log('PASS reels start on actual playing event and label shows time');
+context.audio.paused=true;events.pause();assert.ok(!classes.has('cassette-playing'));assert.equal(nodes.get('cassette-state').textContent,'Ⅱ PAUSED');console.log('PASS pause stops reels');
+context.audio.paused=false;events.playing();events.waiting();assert.ok(!classes.has('cassette-playing'));assert.equal(nodes.get('cassette-state').textContent,'BUFFERING');console.log('PASS buffering stops reels until playback resumes');
+for(const event of ['ended','emptied','error']){events.playing();events[event]();assert.ok(!classes.has('cassette-playing'))}console.log('PASS end, cleared audio and errors stop motion');
+context.current=-1;context.syncCassette();assert.equal(nodes.get('cassette-state').textContent,'READY');console.log('PASS empty player displays ready');
+assert.match(html,/body\.cassette-playing \.cassette-reel\{animation-play-state:running\}/);assert.match(html,/@media\(prefers-reduced-motion:reduce\)\{\.cassette-reel\{animation:none\}\}/);assert.equal((html.match(/class="cassette-reel"/g)||[]).length,2);console.log('PASS two CSS reels respect reduced motion');
