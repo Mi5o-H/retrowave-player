@@ -1,0 +1,10 @@
+import vm from 'node:vm';import fs from 'node:fs';import assert from 'node:assert/strict';
+const handlers={},stored=new Map();let removed=[];
+const cache={async addAll(paths){for(const p of paths){const file=p==='./'?'index.html':p.slice(2);assert.ok(fs.existsSync(file));stored.set(p,new Response(fs.readFileSync(file)))}}};
+const context={self:{location:{origin:'https://mi5o-h.github.io'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},caches:{open:async()=>cache,keys:async()=>['retrowave-v10','unrelated-app'],delete:async key=>removed.push(key),match:async key=>stored.get(key)?.clone()},fetch:async()=>{throw new TypeError('offline')},URL,Promise};
+vm.createContext(context);vm.runInContext(fs.readFileSync('sw.js','utf8'),context);
+let work;handlers.install({waitUntil:p=>work=p});await work;
+assert.ok(stored.has('./family-sync.js'));console.log('PASS offline shell includes family script and all assets');
+handlers.activate({waitUntil:p=>work=p});await work;assert.deepEqual(removed,['retrowave-v10']);console.log('PASS activation preserves unrelated caches');
+handlers.fetch({request:{method:'GET',url:'https://mi5o-h.github.io/retrowave-player/',mode:'navigate'},respondWith:p=>work=p});const response=await work;assert.ok((await response.text()).includes('FAMILY MUSIC'));console.log('PASS airplane-mode navigation falls back to saved app shell');
+let intercepted=false;handlers.fetch({request:{method:'GET',url:'https://retrowave-family-sync.moyassar-h.workers.dev/api/library'},respondWith(){intercepted=true}});assert.equal(intercepted,false);console.log('PASS private API is not intercepted or cached');

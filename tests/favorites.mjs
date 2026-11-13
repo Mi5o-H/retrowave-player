@@ -1,0 +1,11 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+const html=fs.readFileSync('index.html','utf8');
+const refreshFn=html.match(/async function refresh\(\)\{[^\n]+/)[0];
+const toggleFn=html.match(/async function toggleFavorite\(id\)\{[^\n]+/)[0];
+let records=[{id:1,name:'one',blob:'audio1'},{id:2,name:'two',blob:'audio2',cloudRev:'r1'},{id:3,name:'three',favorite:true}];
+const context={tracks:records.slice(),current:1,all:async()=>records.map(t=>({...t})),$:()=>({}),render(){},document:{dispatchEvent(){}},Event,db:{transaction(){const transaction={};const store={get(id){const request={};queueMicrotask(()=>{request.result=records.find(t=>t.id===id);request.onsuccess();queueMicrotask(()=>transaction.oncomplete())});return request},put(track){records=records.map(t=>t.id===track.id?track:t)}};transaction.objectStore=()=>store;return transaction}}};
+vm.createContext(context);vm.runInContext(refreshFn+'\n'+toggleFn,context);
+await context.refresh();assert.deepEqual(Array.from(context.tracks,t=>t.id),[3,1,2]);assert.equal(context.tracks[context.current].id,2);console.log('PASS favorites rise above other tracks without changing active track');
+await context.toggleFavorite(2);assert.deepEqual(Array.from(context.tracks,t=>t.id),[2,3,1]);assert.equal(records.find(t=>t.id===2).blob,'audio2');assert.equal(records.find(t=>t.id===2).cloudRev,'r1');assert.equal(context.tracks[context.current].id,2);console.log('PASS heart persists favorite and preserves audio and cloud metadata');
+await context.toggleFavorite(2);assert.deepEqual(Array.from(context.tracks,t=>t.id),[3,1,2]);console.log('PASS unfavorite restores normal order');
+context.current=-1;context.tracks=[];await context.refresh();assert.equal(context.tracks[0].id,3);console.log('PASS saved favorite survives reloading library');
