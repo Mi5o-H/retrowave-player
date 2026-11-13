@@ -1,0 +1,7 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+const html=fs.readFileSync('index.html','utf8');const behavior=html.slice(html.indexOf("$('refresh-app').onclick="),html.indexOf("if('serviceWorker'in navigator)navigator.serviceWorker.register"));
+const nodes={'refresh-app':{},status:{}};let reloaded=0,updated=0;const context={$:id=>nodes[id],navigator:{onLine:true,serviceWorker:{getRegistration:async()=>({update:async()=>updated++})}},audio:{paused:true},confirm:()=>false,location:{reload:()=>reloaded++},setTimeout,clearTimeout};vm.createContext(context);vm.runInContext(behavior,context);
+await nodes['refresh-app'].onclick();assert.equal(updated,1);assert.equal(reloaded,1);console.log('PASS refresh checks Worker update then reloads without changing stored music');
+context.navigator.onLine=false;await nodes['refresh-app'].onclick();assert.equal(reloaded,1);assert.match(nodes.status.textContent,/GO ONLINE/);console.log('PASS offline refresh shows useful message');
+context.navigator.onLine=true;context.audio.paused=false;await nodes['refresh-app'].onclick();assert.equal(reloaded,1);console.log('PASS refresh during playback can be cancelled');
+assert.ok(!html.includes('grid-template-rows:auto auto 22px 18px'));assert.match(html,/body\.cassette-playing:not\(\.has-spectrum\)/);console.log('PASS stacked layout restored and native playback meter uses CSS animation');
