@@ -1,4 +1,4 @@
-const CACHE='retrowave-v32';
+const CACHE='retrowave-v33';
 const ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg','./family-sync.js'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([
